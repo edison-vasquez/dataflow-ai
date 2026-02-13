@@ -68,11 +68,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         setMounted(true);
         addToast({
             type: 'info',
-            message: t('platformReady') || 'Platform Ready',
-            description: t('aiSecurityActive') || 'AI Security & Cloudflare Workers Active',
+            message: 'Platform Ready',
+            description: 'AI Security & Cloudflare Workers Active',
             duration: 3000
         });
-    }, [addToast, t]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     if (!mounted) return null;
 

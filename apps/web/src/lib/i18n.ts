@@ -1191,9 +1191,10 @@ const translations = {
 type TranslationKey = keyof typeof translations.en;
 
 export function useT() {
-    const lang = useAppStore((s) => s.settings.language);
+    const lang = useAppStore((s) => s.settings?.language) || 'en';
+    const safeLang = lang === 'en' || lang === 'es' ? lang : 'en';
     return (key: TranslationKey, params?: Record<string, string | number>): string => {
-        let text: string = translations[lang]?.[key] || translations.en[key] || key;
+        let text: string = translations[safeLang]?.[key] || translations.en[key] || String(key);
         if (params) {
             Object.entries(params).forEach(([k, v]) => {
                 text = text.replace(`{${k}}`, String(v));
