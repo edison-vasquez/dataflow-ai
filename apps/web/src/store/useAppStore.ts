@@ -144,7 +144,7 @@ interface AppState {
     initProject: () => Promise<void>;
     runFullDiagnostics: () => Promise<{ health: number; status: string }>;
     // Worker actions
-    runWorkerTask: (type: string, data: any[]) => Promise<any>;
+    runWorkerTask: (type: string, data: any[], payload?: Record<string, any>) => Promise<any>;
 }
 
 export const useAppStore = create<AppState>()(
@@ -333,7 +333,7 @@ export const useAppStore = create<AppState>()(
                     };
                 },
 
-                runWorkerTask: (type, data) => {
+                runWorkerTask: (type, data, payload) => {
                     const { setLoading } = get();
                     setLoading(true);
                     return new Promise((resolve, reject) => {
@@ -353,7 +353,7 @@ export const useAppStore = create<AppState>()(
                             reject(err);
                             worker.terminate();
                         };
-                        worker.postMessage({ type, data });
+                        worker.postMessage({ type, data, payload });
                     });
                 }
             }),
