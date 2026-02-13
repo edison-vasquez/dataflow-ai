@@ -11,7 +11,9 @@ export type Bindings = {
     DB: D1Database;
     BUCKET: R2Bucket;
     AI: Ai;
+    CACHE: KVNamespace;
     ANTHROPIC_API_KEY: string;
+    GROQ_API_KEY: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();

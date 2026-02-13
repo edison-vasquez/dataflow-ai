@@ -13,6 +13,10 @@ database_id = "df76ff92-4387-48dd-ba50-7299c4997342"
 binding = "BUCKET"
 bucket_name = "dataflow-datasets"
 
+[[kv_namespaces]]
+binding = "CACHE"
+id = "88fb337b933f460f9ebbab5b534780f8"
+
 [ai]
 binding = "AI"
 

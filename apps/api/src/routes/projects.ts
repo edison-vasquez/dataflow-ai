@@ -5,10 +5,18 @@ const projects = new Hono<{ Bindings: Bindings }>();
 
 projects.get('/', async (c) => {
     const userId = c.req.header('x-user-id') || 'dev-user';
+    const cacheKey = `projects:${userId}`;
     try {
+        // Try KV cache first
+        const cached = await c.env.CACHE.get(cacheKey);
+        if (cached) return c.json(JSON.parse(cached));
+
         const { results } = await c.env.DB.prepare(
             'SELECT * FROM projects WHERE user_id = ? ORDER BY updated_at DESC'
         ).bind(userId).all();
+
+        // Cache for 60 seconds
+        await c.env.CACHE.put(cacheKey, JSON.stringify(results), { expirationTtl: 60 });
         return c.json(results);
     } catch (error) {
         console.error('Error fetching projects:', error);
@@ -32,6 +40,8 @@ projects.post('/', async (c) => {
         await c.env.DB.prepare(
             'INSERT INTO projects (id, user_id, name, status) VALUES (?, ?, ?, ?)'
         ).bind(id, userId, newProject.name, 'active').run();
+        // Invalidate cache
+        await c.env.CACHE.delete(`projects:${userId}`);
         return c.json(newProject);
     } catch (error) {
         console.error('Error creating project:', error);
@@ -58,6 +68,8 @@ projects.put('/:id', async (c) => {
         await c.env.DB.prepare(
             'UPDATE projects SET name = COALESCE(?, name), status = COALESCE(?, status), updated_at = CURRENT_TIMESTAMP WHERE id = ?'
         ).bind(name || null, status || null, id).run();
+        const userId = c.req.header('x-user-id') || 'dev-user';
+        await c.env.CACHE.delete(`projects:${userId}`);
         return c.json({ id, name, status });
     } catch (error) {
         return c.json({ error: 'Failed to update project' }, 500);
@@ -68,6 +80,8 @@ projects.delete('/:id', async (c) => {
     try {
         const id = c.req.param('id');
         await c.env.DB.prepare('DELETE FROM projects WHERE id = ?').bind(id).run();
+        const userId = c.req.header('x-user-id') || 'dev-user';
+        await c.env.CACHE.delete(`projects:${userId}`);
         return c.json({ deleted: true });
     } catch (error) {
         return c.json({ error: 'Failed to delete project' }, 500);

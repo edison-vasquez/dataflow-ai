@@ -1,0 +1,26 @@
+name = "dataflow-ai"
+compatibility_date = "2024-02-09"
+compatibility_flags = ["nodejs_compat"]
+
+# Pages deployment uses @cloudflare/next-on-pages
+# Build: npx @cloudflare/next-on-pages
+# Deploy: wrangler pages deploy .vercel/output/static
+
+[[d1_databases]]
+binding = "DB"
+database_name = "dataflow-db"
+database_id = "df76ff92-4387-48dd-ba50-7299c4997342"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "dataflow-datasets"
+
+[[kv_namespaces]]
+binding = "CACHE"
+id = "88fb337b933f460f9ebbab5b534780f8"
+
+[ai]
+binding = "AI"
+
+[vars]
+ENVIRONMENT = "production"

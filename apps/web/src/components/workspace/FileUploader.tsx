@@ -7,12 +7,14 @@ import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { useT } from "@/lib/i18n";
 
 interface FileUploaderProps {
     onDataParsed: (data: any[], fileName: string, rawFile: File) => void;
 }
 
 export function FileUploader({ onDataParsed }: FileUploaderProps) {
+    const t = useT();
     const [isUploading, setIsUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -24,8 +26,28 @@ export function FileUploader({ onDataParsed }: FileUploaderProps) {
         setError(null);
 
         const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+        const isJSON = file.name.endsWith('.json');
 
-        if (isExcel) {
+        if (isJSON) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const parsed = JSON.parse(e.target?.result as string);
+                    const jsonData = Array.isArray(parsed) ? parsed :
+                        (parsed.data && Array.isArray(parsed.data)) ? parsed.data : [parsed];
+                    setIsUploading(false);
+                    if (jsonData.length > 0 && typeof jsonData[0] === 'object') {
+                        onDataParsed(jsonData, file.name, file);
+                    } else {
+                        setError(t('jsonArrayRequired'));
+                    }
+                } catch (err) {
+                    setIsUploading(false);
+                    setError(t('errorParsingJson'));
+                }
+            };
+            reader.readAsText(file);
+        } else if (isExcel) {
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
@@ -38,7 +60,7 @@ export function FileUploader({ onDataParsed }: FileUploaderProps) {
                     onDataParsed(json, file.name, file);
                 } catch (err) {
                     setIsUploading(false);
-                    setError("Error parsing Excel file.");
+                    setError(t('errorParsingExcel'));
                 }
             };
             reader.readAsArrayBuffer(file);
@@ -46,10 +68,11 @@ export function FileUploader({ onDataParsed }: FileUploaderProps) {
             Papa.parse(file, {
                 header: true,
                 skipEmptyLines: true,
+                dynamicTyping: true,
                 complete: (results) => {
                     setIsUploading(false);
                     if (results.errors.length > 0) {
-                        setError("There was an error parsing the file.");
+                        setError(t('errorParsingFile'));
                     } else {
                         onDataParsed(results.data, file.name, file);
                     }
@@ -67,7 +90,8 @@ export function FileUploader({ onDataParsed }: FileUploaderProps) {
         accept: {
             'text/csv': ['.csv'],
             'application/vnd.ms-excel': ['.xls'],
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+            'application/json': ['.json']
         },
         multiple: false
     });
@@ -76,36 +100,32 @@ export function FileUploader({ onDataParsed }: FileUploaderProps) {
         <div
             {...getRootProps()}
             className={cn(
-                "group relative border-2 border-dashed rounded-[3.5rem] p-24 flex flex-col items-center justify-center text-center gap-10 transition-all cursor-pointer overflow-hidden",
-                isDragActive ? "border-white/40 bg-white/5 scale-[1.01]" : "border-white/5 hover:border-white/20 hover:bg-white/[0.02]",
+                "group relative border-2 border-dashed rounded-2xl p-12 flex flex-col items-center justify-center text-center gap-6 transition-all cursor-pointer overflow-hidden",
+                isDragActive ? "border-primary bg-primary/5 scale-[1.01]" : "border-gray-300 hover:border-primary hover:bg-primary/5",
                 isUploading && "pointer-events-none opacity-60"
             )}
         >
             <input {...getInputProps()} />
 
-            {/* Background elements */}
-            <div className="absolute inset-0 opacity-[0.02] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-repeat" />
-            <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[100px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-
             <div className={cn(
-                "w-24 h-24 rounded-3xl flex items-center justify-center transition-all duration-700 relative z-10",
-                isDragActive ? "bg-white text-black rotate-12" : "bg-white/5 text-white/20 group-hover:text-white group-hover:scale-110 group-hover:-rotate-6"
+                "w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-700 relative z-10",
+                isDragActive ? "bg-primary text-white rotate-12" : "bg-gray-100 text-gray-400 group-hover:text-primary group-hover:scale-110"
             )}>
                 {isUploading ? (
-                    <Loader2 className="w-10 h-10 animate-spin" />
+                    <Loader2 className="w-8 h-8 animate-spin" />
                 ) : (
-                    <ArrowUp className={cn("w-10 h-10 group-hover:translate-y-[-4px] transition-transform", isDragActive && "animate-bounce")} />
+                    <ArrowUp className={cn("w-8 h-8 group-hover:translate-y-[-4px] transition-transform", isDragActive && "animate-bounce")} />
                 )}
             </div>
 
             <div className="space-y-4 relative z-10 px-4">
-                <h3 className="text-3xl font-black text-white tracking-tighter">
-                    {isDragActive ? "Engage." : "Initialize Feed."}
+                <h3 className="text-xl font-black text-gray-900 tracking-tighter">
+                    {isDragActive ? t('dropHere') : t('uploadFile')}
                 </h3>
-                <p className="text-white/30 font-medium max-w-sm mx-auto leading-relaxed italic uppercase text-[10px] tracking-[0.2em]">
+                <p className="text-gray-500 font-medium max-w-sm mx-auto leading-relaxed text-xs">
                     {isUploading
-                        ? "Indexing dimensional vectors..."
-                        : "Drop enterprise payload here or select from global file cluster."
+                        ? t('processingFile')
+                        : t('dragDrop')
                     }
                 </p>
             </div>
@@ -117,13 +137,13 @@ export function FileUploader({ onDataParsed }: FileUploaderProps) {
             )}
 
             {!isUploading && !isDragActive && (
-                <div className="flex items-center gap-10 mt-6 relative z-10">
-                    <div className="flex items-center gap-3 text-[9px] font-black text-white/10 uppercase tracking-[0.3em] group-hover:text-white/30 transition-colors">
-                        <ShieldCheck className="w-3.5 h-3.5" /> Security Tier 4
+                <div className="flex items-center gap-6 mt-4 relative z-10">
+                    <div className="flex items-center gap-3 text-[9px] font-black text-gray-400 uppercase tracking-wider group-hover:text-gray-500 transition-colors">
+                        <ShieldCheck className="w-3.5 h-3.5" /> {t('secureUpload')}
                     </div>
-                    <div className="w-1 h-1 rounded-full bg-white/5" />
-                    <div className="flex items-center gap-3 text-[9px] font-black text-white/10 uppercase tracking-[0.3em] group-hover:text-white/30 transition-colors">
-                        <Database className="w-3.5 h-3.5" /> High Velocity
+                    <div className="w-1 h-1 rounded-full bg-gray-200" />
+                    <div className="flex items-center gap-3 text-[9px] font-black text-gray-400 uppercase tracking-wider group-hover:text-gray-500 transition-colors">
+                        <Database className="w-3.5 h-3.5" /> CSV, XLS, XLSX, JSON
                     </div>
                 </div>
             )}

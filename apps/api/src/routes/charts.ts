@@ -16,6 +16,8 @@ charts.post('/', async (c) => {
             VALUES (?, ?, ?, ?, ?)
         `).bind(id, projectId, title, type, JSON.stringify(config || {})).run();
 
+        // Invalidate cache
+        await c.env.CACHE.delete(`charts:${projectId}`);
         return c.json({ id, title, type, created_at: new Date().toISOString() });
     } catch (error) {
         console.error('Chart save error:', error);
@@ -28,6 +30,10 @@ charts.get('/', async (c) => {
         const projectId = c.req.query('projectId');
         if (!projectId) return c.json({ error: 'projectId required' }, 400);
 
+        const cacheKey = `charts:${projectId}`;
+        const cached = await c.env.CACHE.get(cacheKey);
+        if (cached) return c.json(JSON.parse(cached));
+
         const { results } = await c.env.DB.prepare(
             'SELECT * FROM charts WHERE project_id = ? ORDER BY created_at ASC'
         ).bind(projectId).all();
@@ -37,6 +43,7 @@ charts.get('/', async (c) => {
             config: ch.config ? JSON.parse(ch.config) : {},
         }));
 
+        await c.env.CACHE.put(cacheKey, JSON.stringify(parsed), { expirationTtl: 60 });
         return c.json(parsed);
     } catch (error) {
         console.error('Chart list error:', error);

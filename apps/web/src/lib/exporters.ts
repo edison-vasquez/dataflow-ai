@@ -1,4 +1,3 @@
-import jsPDF from 'jspdf';
 import Papa from 'papaparse';
 
 export function exportToCSV(data: any[], filename: string = 'export.csv') {
@@ -14,38 +13,333 @@ export function exportToCSV(data: any[], filename: string = 'export.csv') {
     document.body.removeChild(link);
 }
 
-export function exportToPDF(metadata: { projectName: string; transformations: any[]; chartsCount: number }) {
+export async function exportToPDF(metadata: {
+    projectName: string;
+    transformations: any[];
+    chartsCount: number;
+    chartImages?: string[];
+}) {
+    const { default: jsPDF } = await import('jspdf');
     const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
 
-    // Style
+    // Premium Primary Header (Material Design 3 Primary Blue)
+    doc.setFillColor(26, 115, 232);
+    doc.rect(0, 0, pageWidth, 50, 'F');
+
+    doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(22);
-    doc.text("DataFlow AI - Project Report", 20, 30);
+    doc.setFontSize(26);
+    doc.text("DATAFLOW AI", 20, 30);
 
+    doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(12);
-    doc.setTextColor(100);
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, 40);
+    doc.setTextColor(255, 255, 255);
+    doc.text("DATA ANALYTICS REPORT", 140, 30);
 
-    doc.setDrawColor(200);
-    doc.line(20, 45, 190, 45);
+    // Metadata Section
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text("Executive Summary", 20, 70);
 
-    doc.setFontSize(14);
-    doc.setTextColor(0);
-    doc.text("Summary", 20, 60);
     doc.setFontSize(11);
-    doc.text(`Project Name: ${metadata.projectName}`, 20, 70);
-    doc.text(`Visualizations Created: ${metadata.chartsCount}`, 20, 80);
-    doc.text(`Transformations Applied: ${metadata.transformations.length}`, 20, 90);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(80, 80, 80);
+    doc.text(`Project: ${metadata.projectName}`, 20, 80);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 85);
+    doc.text(`Charts: ${metadata.chartsCount}`, 20, 90);
+    doc.text(`Transformations: ${metadata.transformations.length}`, 20, 95);
+
+    // Decorative Line
+    doc.setDrawColor(240, 240, 240);
+    doc.line(20, 105, pageWidth - 20, 105);
+
+    // Audit Log
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("Transformation Log", 20, 120);
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(120, 120, 120);
 
     if (metadata.transformations.length > 0) {
-        doc.setFontSize(14);
-        doc.text("Audit Log", 20, 110);
-        doc.setFontSize(10);
         metadata.transformations.forEach((t, i) => {
-            doc.text(`${i + 1}. ${t.type} - ${new Date(t.timestamp).toLocaleTimeString()}`, 20, 120 + (i * 10));
+            const y = 130 + (i * 8);
+            if (y > 270) return; // Simple overflow check
+            doc.setFillColor(245, 245, 250);
+            doc.rect(20, y - 4, pageWidth - 40, 6, 'F');
+            doc.text(`${String(i + 1).padStart(2, '0')}.`, 25, y);
+            doc.setTextColor(0, 0, 0);
+            doc.text(`${t.type.toUpperCase().replace('_', ' ')}`, 35, y);
+            doc.setTextColor(150, 150, 150);
+            doc.text(`${new Date(t.timestamp).toLocaleTimeString()}`, pageWidth - 50, y);
+        });
+    } else {
+        doc.text("No transformations recorded.", 20, 130);
+    }
+
+    // Charts Section (If images provided)
+    if (metadata.chartImages && metadata.chartImages.length > 0) {
+        doc.addPage();
+        doc.setFontSize(18);
+        doc.setFont("helvetica", "bold");
+        doc.text("Chart Images", 20, 30);
+
+        metadata.chartImages.forEach((img, i) => {
+            const yPos = 40 + (i * 120);
+            if (yPos + 100 > 280) {
+                doc.addPage();
+            }
+            try {
+                doc.addImage(img, 'PNG', 20, i % 2 === 0 ? 40 : 160, pageWidth - 40, 100);
+            } catch (e) {
+                console.error("Failed to add image to PDF", e);
+            }
         });
     }
 
-    doc.save(`${metadata.projectName || 'DataFlow'}_Report.pdf`);
+    // Final Footer
+    const totalPages = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(200, 200, 200);
+        doc.text(`Page ${i} of ${totalPages} | DataFlow AI | Analytics Report`, pageWidth / 2, 285, { align: 'center' });
+    }
+
+    doc.save(`${metadata.projectName.replace(/\s+/g, '_')}_Report.pdf`);
+}
+
+export async function exportConsultancyReport(data: {
+    title: string;
+    content: string;
+    audience: string;
+    objective: string;
+}) {
+    const { default: jsPDF } = await import('jspdf');
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Strategy Header (Dark/Slate theme)
+    doc.setFillColor(30, 41, 59);
+    doc.rect(0, 0, pageWidth, 60, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.text("STRATEGIC CONSULTANCY REPORT", 20, 30);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`AUDIENCE: ${data.audience.toUpperCase()}`, 20, 45);
+    doc.text(`OBJECTIVE: ${data.objective.toUpperCase()}`, 120, 45);
+
+    // Body
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(12);
+    const lines = doc.splitTextToSize(data.content, pageWidth - 40);
+    doc.text(lines, 20, 80);
+
+    // Footer
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text(`Generated by DataFlow AI Consultant Suite | ${new Date().toLocaleDateString()}`, pageWidth / 2, 285, { align: 'center' });
+
+    doc.save(`Strategic_Report_${data.objective}.pdf`);
+}
+
+// === EXCEL EXPORT ===
+export async function exportToExcel(data: any[], filename: string = 'export.xlsx') {
+    const XLSX = await import('xlsx');
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Data');
+    XLSX.writeFile(wb, filename);
+}
+
+// === DATA QUALITY REPORT ===
+export async function exportDataQualityReport(profile: {
+    rowCount: number;
+    columnCount: number;
+    qualityScore: number;
+    completenessPercentage: number;
+    duplicateRows: number;
+    columns: Record<string, any>;
+}, issues: Array<{ type: string; field: string; count: number; severity: string; suggestion: string }>) {
+    const { default: jsPDF } = await import('jspdf');
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Header
+    doc.setFillColor(26, 115, 232);
+    doc.rect(0, 0, pageWidth, 50, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.text("DATA QUALITY REPORT", 20, 25);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 40);
+
+    // Executive Summary
+    let y = 65;
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("Executive Summary", 20, y); y += 15;
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(60, 60, 60);
+    doc.text(`Quality Score: ${profile.qualityScore}/100`, 20, y); y += 7;
+    doc.text(`Rows: ${profile.rowCount.toLocaleString()}`, 20, y); y += 7;
+    doc.text(`Columns: ${profile.columnCount}`, 20, y); y += 7;
+    doc.text(`Completeness: ${profile.completenessPercentage.toFixed(1)}%`, 20, y); y += 7;
+    doc.text(`Duplicate Rows: ${profile.duplicateRows}`, 20, y); y += 15;
+
+    // Issues Section
+    doc.setDrawColor(230, 230, 230);
+    doc.line(20, y, pageWidth - 20, y); y += 10;
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Issues Found (${issues.length})`, 20, y); y += 12;
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    if (issues.length > 0) {
+        issues.forEach((issue, i) => {
+            if (y > 265) { doc.addPage(); y = 20; }
+            const severityColor = issue.severity === 'high' ? [239, 68, 68] : issue.severity === 'medium' ? [245, 158, 11] : [59, 130, 246];
+            doc.setFillColor(severityColor[0], severityColor[1], severityColor[2]);
+            doc.circle(25, y - 1.5, 2, 'F');
+            doc.setTextColor(0, 0, 0);
+            doc.text(`[${issue.severity.toUpperCase()}] ${issue.type} in "${issue.field}" — ${issue.count} occurrences`, 32, y);
+            y += 6;
+            doc.setTextColor(120, 120, 120);
+            doc.text(`  Suggestion: ${issue.suggestion}`, 32, y);
+            y += 9;
+        });
+    } else {
+        doc.setTextColor(16, 185, 129);
+        doc.text("No issues detected. Data quality is excellent.", 20, y);
+        y += 10;
+    }
+
+    // Column Analysis
+    if (y > 220) { doc.addPage(); y = 20; }
+    y += 5;
+    doc.setDrawColor(230, 230, 230);
+    doc.line(20, y, pageWidth - 20, y); y += 10;
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text("Column Analysis", 20, y); y += 12;
+
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    Object.entries(profile.columns).forEach(([colName, colData]: [string, any]) => {
+        if (y > 270) { doc.addPage(); y = 20; }
+        doc.setTextColor(0, 0, 0);
+        doc.setFont("helvetica", "bold");
+        doc.text(`${colName}`, 20, y);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100, 100, 100);
+        const info = `Type: ${colData.type || 'unknown'} | Missing: ${colData.missing?.count ?? 0} (${colData.missing?.percentage?.toFixed(1) ?? 0}%) | Unique: ${colData.uniqueValues ?? 'N/A'}`;
+        doc.text(info, 65, y);
+        y += 7;
+    });
+
+    // Footer
+    const totalPages = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(200, 200, 200);
+        doc.text(`Page ${i} of ${totalPages} | DataFlow AI | Data Quality Report`, pageWidth / 2, 285, { align: 'center' });
+    }
+
+    doc.save('DataQuality_Report.pdf');
+}
+
+// === AUDIT TRAIL REPORT ===
+export async function exportAuditReport(transformations: Array<{ type: string; params: any; timestamp: Date; affectedRows?: number }>, metadata: {
+    datasetName: string;
+    originalRowCount?: number;
+    finalRowCount?: number;
+    originalColumnCount?: number;
+    finalColumnCount?: number;
+}) {
+    const { default: jsPDF } = await import('jspdf');
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Header
+    doc.setFillColor(30, 41, 59);
+    doc.rect(0, 0, pageWidth, 50, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.text("TRANSFORMATION AUDIT TRAIL", 20, 25);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Dataset: ${metadata.datasetName}`, 20, 38);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 45);
+
+    let y = 65;
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("Summary", 20, y); y += 12;
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(60, 60, 60);
+    doc.text(`Total Transformations: ${transformations.length}`, 20, y); y += 7;
+    if (metadata.originalRowCount !== undefined) doc.text(`Rows: ${metadata.originalRowCount} → ${metadata.finalRowCount ?? 'N/A'}`, 20, y);
+    y += 7;
+    if (metadata.originalColumnCount !== undefined) doc.text(`Columns: ${metadata.originalColumnCount} → ${metadata.finalColumnCount ?? 'N/A'}`, 20, y);
+    y += 15;
+
+    doc.setDrawColor(230, 230, 230);
+    doc.line(20, y, pageWidth - 20, y); y += 10;
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text("Transformation Log", 20, y); y += 12;
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    transformations.forEach((t, i) => {
+        if (y > 270) { doc.addPage(); y = 20; }
+        doc.setFillColor(245, 245, 250);
+        doc.rect(20, y - 4, pageWidth - 40, 12, 'F');
+        doc.setTextColor(0, 0, 0);
+        doc.setFont("helvetica", "bold");
+        doc.text(`${String(i + 1).padStart(2, '0')}. ${t.type.toUpperCase().replace(/_/g, ' ')}`, 25, y);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100, 100, 100);
+        const paramStr = t.params ? JSON.stringify(t.params).slice(0, 60) : '';
+        doc.text(paramStr, 25, y + 5);
+        doc.setTextColor(150, 150, 150);
+        doc.text(new Date(t.timestamp).toLocaleTimeString(), pageWidth - 50, y);
+        y += 16;
+    });
+
+    if (transformations.length === 0) {
+        doc.setTextColor(150, 150, 150);
+        doc.text("No transformations recorded.", 20, y);
+    }
+
+    const totalPages = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(200, 200, 200);
+        doc.text(`Page ${i} of ${totalPages} | DataFlow AI | Audit Report`, pageWidth / 2, 285, { align: 'center' });
+    }
+
+    doc.save(`Audit_Report_${metadata.datasetName.replace(/\s+/g, '_')}.pdf`);
 }
