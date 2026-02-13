@@ -173,6 +173,12 @@ export function EDAView() {
         { key: "correlation", label: t('correlation'), icon: <TrendingUp className="w-3.5 h-3.5" /> },
     ];
 
+    const issueTypeHelp: Record<string, string> = {
+        null: t('nullHelp'),
+        outlier: t('outlierHelp'),
+        duplicate: t('duplicateHelp'),
+    };
+
     function buildHistogramData(col: string) {
         const values = dataset!.map(r => Number(r[col])).filter(v => !isNaN(v));
         if (values.length === 0) return [];
@@ -248,12 +254,13 @@ export function EDAView() {
                             {[
                                 { label: t('totalRows'), value: dataQuality.totalRows.toLocaleString(), accent: "text-primary" },
                                 { label: t('totalColumns'), value: String(dataQuality.totalCols), accent: "text-primary" },
-                                { label: t('missingCells'), value: `${fmt(dataQuality.missingPct, 1)}%`, accent: dataQuality.missingPct > 5 ? "text-red-500" : "text-emerald-500" },
-                                { label: t('duplicateRows'), value: `${fmt(dataQuality.duplicatePct, 1)}%`, accent: dataQuality.duplicatePct > 2 ? "text-red-500" : "text-emerald-500" },
+                                { label: t('missingCells'), value: `${fmt(dataQuality.missingPct, 1)}%`, accent: dataQuality.missingPct > 5 ? "text-red-500" : "text-emerald-500", help: t('nullHelp') },
+                                { label: t('duplicateRows'), value: `${fmt(dataQuality.duplicatePct, 1)}%`, accent: dataQuality.duplicatePct > 2 ? "text-red-500" : "text-emerald-500", help: t('duplicateHelp') },
                             ].map((item, idx) => (
                                 <div key={idx} className="p-5 rounded-xl bg-white shadow-sm border border-gray-200">
                                     <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">{item.label}</p>
                                     <p className={cn("text-2xl font-black tracking-tight", item.accent)}>{item.value}</p>
+                                    {'help' in item && item.help && <p className="text-[9px] text-gray-400 mt-1.5 leading-relaxed">{item.help}</p>}
                                 </div>
                             ))}
                         </section>
@@ -294,9 +301,9 @@ export function EDAView() {
                                                 <div className="space-y-2 text-[10px]">
                                                     {stats.type === 'numeric' ? (
                                                         <>
-                                                            <div className="flex justify-between"><span>{t('mean')}</span><span className="font-black">{stats.mean}</span></div>
-                                                            <div className="flex justify-between"><span>{t('median')}</span><span className="font-black">{stats.median}</span></div>
-                                                            <div className="flex justify-between"><span>{t('stdDev')}</span><span className="font-black">{stats.std}</span></div>
+                                                            <div className="flex justify-between" title={t('meanHelp')}><span>{t('mean')}</span><span className="font-black">{stats.mean}</span></div>
+                                                            <div className="flex justify-between" title={t('medianHelp')}><span>{t('median')}</span><span className="font-black">{stats.median}</span></div>
+                                                            <div className="flex justify-between" title={t('stdDevHelp')}><span>{t('stdDev')}</span><span className="font-black">{stats.std}</span></div>
                                                         </>
                                                     ) : (
                                                         <>
@@ -354,15 +361,16 @@ export function EDAView() {
                 {activeTab === "bivariate" && (
                     <motion.div key="bivariate" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="space-y-8">
                         <section className="p-8 rounded-2xl bg-white border border-gray-200 shadow-sm space-y-8">
+                            <p className="text-sm text-gray-500 leading-relaxed">{t('bivariateGuide')}</p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="space-y-3">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Column A</label>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">{t('selectColumnA')}</label>
                                     <select value={biColA} onChange={(e) => setBiColA(e.target.value)} className="w-full p-4 rounded-xl bg-gray-50 border border-gray-200 font-bold text-sm outline-none focus:border-primary transition-all">
                                         {columns.map(c => <option key={c} value={c}>{c}</option>)}
                                     </select>
                                 </div>
                                 <div className="space-y-3">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Column B</label>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">{t('selectColumnB')}</label>
                                     <select value={biColB} onChange={(e) => setBiColB(e.target.value)} className="w-full p-4 rounded-xl bg-gray-50 border border-gray-200 font-bold text-sm outline-none focus:border-primary transition-all">
                                         {columns.map(c => <option key={c} value={c}>{c}</option>)}
                                     </select>
@@ -382,6 +390,10 @@ export function EDAView() {
 
                 {activeTab === "correlation" && (
                     <motion.div key="correlation" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="space-y-8">
+                        <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-3">
+                            <Info className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+                            <p className="text-xs text-blue-700 leading-relaxed">{t('correlationHelp')}</p>
+                        </div>
                         <div className="p-8 bg-white border border-gray-200 rounded-2xl overflow-auto">
                             {correlationMatrix ? (
                                 <table className="w-full border-collapse">

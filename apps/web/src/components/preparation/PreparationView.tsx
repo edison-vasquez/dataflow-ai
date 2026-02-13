@@ -218,6 +218,9 @@ function IssueCard({ issue, index }: { issue: any; index: number }) {
                             )}>{issue.type} {t('detected')}</span>
                         </div>
                         <p className="text-xs text-gray-500 font-medium">{t('foundOccurrences', { count: issue.count })}. <span className="italic block mt-1">{issue.suggestion}</span></p>
+                        {issue.type === 'null' && <p className="text-[10px] text-gray-400 mt-1 leading-relaxed">{t('nullHelp')}</p>}
+                        {issue.type === 'outlier' && <p className="text-[10px] text-gray-400 mt-1 leading-relaxed">{t('outlierHelp')}</p>}
+                        {issue.type === 'duplicate' && <p className="text-[10px] text-gray-400 mt-1 leading-relaxed">{t('duplicateHelp')}</p>}
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -1337,6 +1340,7 @@ export function PreparationView() {
                             <p className="text-[10px] font-black uppercase tracking-wider text-gray-400">{t('healthScore')}</p>
                             <p className="text-base font-bold text-gray-900 tracking-tight">{healthScore > 80 ? t('good') : t('needsAttention')}</p>
                             <p className="text-[10px] text-gray-500 uppercase font-bold mt-1">{t('foundIssues', { count: String((issues || []).length) })}</p>
+                            <p className="text-[9px] text-gray-400 mt-1 leading-relaxed">{t('healthScoreHelp')}</p>
                         </div>
                     </div>
                 </div>
@@ -1428,6 +1432,15 @@ export function PreparationView() {
                             </div>
                         </div>
 
+                        {issues && issues.length > 0 && (
+                            <p className="text-[10px] text-gray-500 leading-relaxed relative z-10">
+                                {t('autoFixPreview', {
+                                    dupes: String(issues.filter(i => i.type === 'duplicate').reduce((a, i) => a + i.count, 0)),
+                                    nulls: String(issues.filter(i => i.type === 'null').reduce((a, i) => a + i.count, 0)),
+                                    outliers: String(issues.filter(i => i.type === 'outlier').reduce((a, i) => a + i.count, 0)),
+                                })}
+                            </p>
+                        )}
                         <button
                             onClick={handleAutoClean}
                             disabled={isCleaning || !issues || issues.length === 0}

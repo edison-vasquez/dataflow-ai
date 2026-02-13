@@ -16,6 +16,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAppStore, Simulation } from "@/store/useAppStore";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { AnimatedChart } from "@/components/ui/AnimatedChart";
 
 interface SimulationPanelProps {
     isOpen: boolean;
@@ -24,7 +25,7 @@ interface SimulationPanelProps {
 
 export function SimulationPanel({ isOpen, onClose }: SimulationPanelProps) {
     const t = useT();
-    const { dataset, simulations, addSimulation, updateSimulation, removeSimulation } = useAppStore();
+    const { dataset, simulations, addSimulation, updateSimulation, removeSimulation, addChart, persistChart } = useAppStore();
     const [isCreating, setIsCreating] = useState(false);
 
     if (!dataset) return null;
@@ -44,6 +45,90 @@ export function SimulationPanel({ isOpen, onClose }: SimulationPanelProps) {
         setIsCreating(false);
     };
 
+    const buildProjectionChartOption = (sim: Simulation) => {
+        const step = Math.max(1, Math.floor(dataset.length / 50));
+        const sampled = dataset.filter((_, i) => i % step === 0).slice(0, 50);
+        const originalData = sampled.map(r => Number(r[sim.targetColumn]) || 0);
+        const projectedData = originalData.map(v => v * sim.adjustment);
+        const xLabels = sampled.map((_, i) => String(i));
+
+        return {
+            grid: { top: 10, left: 10, right: 10, bottom: 20, containLabel: false },
+            xAxis: {
+                type: 'category',
+                data: xLabels,
+                show: true,
+                axisLine: { show: false },
+                axisTick: { show: false },
+                axisLabel: { show: false },
+                splitLine: { show: false }
+            },
+            yAxis: {
+                type: 'value',
+                show: false,
+                splitLine: { show: true, lineStyle: { color: '#f3f4f6', type: 'dashed' } }
+            },
+            tooltip: { trigger: 'axis', textStyle: { fontSize: 10 } },
+            series: [
+                {
+                    name: t('original'),
+                    type: 'line',
+                    data: originalData,
+                    smooth: true,
+                    symbol: 'none',
+                    lineStyle: { color: '#1a73e8', width: 2, type: 'solid' },
+                    itemStyle: { color: '#1a73e8' }
+                },
+                {
+                    name: t('projected'),
+                    type: 'line',
+                    data: projectedData,
+                    smooth: true,
+                    symbol: 'none',
+                    lineStyle: { color: '#10b981', width: 2, type: 'dashed' },
+                    itemStyle: { color: '#10b981' }
+                }
+            ]
+        };
+    };
+
+    const handleAddToExploration = (sim: Simulation) => {
+        const chart = {
+            id: crypto.randomUUID(),
+            title: `${sim.targetColumn} - ${t('projectionPreview')}`,
+            type: 'line',
+            config: buildProjectionChartOption(sim)
+        };
+        addChart(chart);
+        persistChart(chart);
+    };
+
+    const buildImpactBarOption = (originalSum: number, projectedSum: number) => {
+        return {
+            grid: { top: 2, left: 2, right: 2, bottom: 2, containLabel: false },
+            xAxis: {
+                type: 'category',
+                data: [t('original'), t('projected')],
+                show: false
+            },
+            yAxis: {
+                type: 'value',
+                show: false
+            },
+            tooltip: { show: false },
+            series: [
+                {
+                    type: 'bar',
+                    data: [
+                        { value: originalSum, itemStyle: { color: '#6b7280', borderRadius: [3, 3, 0, 0] } },
+                        { value: projectedSum, itemStyle: { color: projectedSum >= originalSum ? '#10b981' : '#ef4444', borderRadius: [3, 3, 0, 0] } }
+                    ],
+                    barWidth: '40%'
+                }
+            ]
+        };
+    };
+
     return (
         <AnimatePresence>
             {isOpen && (
@@ -52,10 +137,10 @@ export function SimulationPanel({ isOpen, onClose }: SimulationPanelProps) {
                         initial={{ x: '100%' }}
                         animate={{ x: 0 }}
                         exit={{ x: '100%' }}
-                        className="w-full max-w-lg h-full bg-white rounded-3xl border border-gray-100 shadow-3xl flex flex-col overflow-hidden"
+                        className="w-full max-w-lg h-full bg-white rounded-2xl border border-gray-100 shadow-3xl flex flex-col overflow-hidden"
                     >
                         {/* Header */}
-                        <div className="p-8 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
+                        <div className="p-5 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
                             <div>
                                 <div className="flex items-center gap-3 mb-1">
                                     <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white shadow-lg">
@@ -85,15 +170,16 @@ export function SimulationPanel({ isOpen, onClose }: SimulationPanelProps) {
                         </div>
 
                         {/* Content */}
-                        <div className="flex-1 overflow-y-auto p-8 space-y-8">
+                        <div className="flex-1 overflow-y-auto p-5 space-y-4">
                             {simulations.length === 0 && !isCreating ? (
-                                <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
-                                    <div className="w-16 h-16 rounded-3xl bg-gray-50 border border-dashed border-gray-200 flex items-center justify-center">
+                                <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
+                                    <div className="w-16 h-16 rounded-2xl bg-gray-50 border border-dashed border-gray-200 flex items-center justify-center">
                                         <SlidersHorizontal className="w-8 h-8 text-gray-300" />
                                     </div>
                                     <div className="space-y-2">
                                         <h3 className="font-bold text-gray-900">{t('noActiveSimulations')}</h3>
-                                        <p className="text-[11px] text-gray-400 max-w-[240px] leading-relaxed">{t('createSimulationDesc')}</p>
+                                        <p className="text-[11px] text-gray-500 font-medium">{t('simulationHelp')}</p>
+                                        <p className="text-[11px] text-gray-400 max-w-[280px] leading-relaxed">{t('simEmptyGuide')}</p>
                                     </div>
                                     <button
                                         onClick={handleCreateDefault}
@@ -103,14 +189,14 @@ export function SimulationPanel({ isOpen, onClose }: SimulationPanelProps) {
                                     </button>
                                 </div>
                             ) : (
-                                <div className="space-y-6">
+                                <div className="space-y-3">
                                     {simulations.map((sim) => (
                                         <motion.div
                                             key={sim.id}
                                             layout
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
-                                            className="p-6 rounded-3xl bg-gray-50 border border-gray-100 space-y-6 relative group"
+                                            className="p-4 rounded-2xl bg-gray-50 border border-gray-100 space-y-3 relative group"
                                         >
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
@@ -181,6 +267,25 @@ export function SimulationPanel({ isOpen, onClose }: SimulationPanelProps) {
                                                 </div>
                                             </div>
 
+                                            {/* Inline projection chart */}
+                                            {sim.adjustment !== 1 && (
+                                                <div className="space-y-2 pt-2">
+                                                    <span className="text-[9px] font-black uppercase tracking-wider text-gray-400">{t('projectionPreview')}</span>
+                                                    <AnimatedChart
+                                                        option={buildProjectionChartOption(sim)}
+                                                        style={{ height: 140 }}
+                                                        className="min-h-0"
+                                                    />
+                                                    <button
+                                                        onClick={() => handleAddToExploration(sim)}
+                                                        className="w-full py-2 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 transition-colors"
+                                                    >
+                                                        <Plus className="w-3 h-3" />
+                                                        {t('addToExploration')}
+                                                    </button>
+                                                </div>
+                                            )}
+
                                             {/* Reset button */}
                                             {sim.adjustment !== 1 && (
                                                 <button
@@ -196,17 +301,22 @@ export function SimulationPanel({ isOpen, onClose }: SimulationPanelProps) {
 
                                     <button
                                         onClick={handleCreateDefault}
-                                        className="w-full py-4 rounded-3xl border-2 border-dashed border-gray-100 hover:border-primary/30 hover:bg-primary/5 transition-all flex items-center justify-center gap-3 group"
+                                        className="w-full py-4 rounded-2xl border-2 border-dashed border-gray-100 hover:border-primary/30 hover:bg-primary/5 transition-all flex items-center justify-center gap-3 group"
                                     >
                                         <Plus className="w-4 h-4 text-gray-300 group-hover:text-primary transition-colors" />
                                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-primary transition-colors">{t('addScenario')}</span>
                                     </button>
+
+                                    {/* Disclaimer */}
+                                    <p className="text-[10px] text-gray-400 italic leading-relaxed pt-2">
+                                        {t('simDisclaimer')}
+                                    </p>
                                 </div>
                             )}
                         </div>
 
                         {/* Footer / Summary */}
-                        <div className="p-10 border-t border-gray-50 bg-gray-900">
+                        <div className="p-5 border-t border-gray-50 bg-gray-900">
                             <div className="flex items-center gap-4 mb-6">
                                 <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
                                     <Target className="w-6 h-6" />
@@ -222,7 +332,7 @@ export function SimulationPanel({ isOpen, onClose }: SimulationPanelProps) {
                         </div>
                         {/* Comparison Metrics Footer */}
                         {simulations.some(s => s.isActive) && (
-                            <div className="p-8 bg-gray-900 text-white space-y-4">
+                            <div className="p-5 bg-gray-900 text-white space-y-4">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-[10px] font-black uppercase tracking-widest text-primary">{t('impactSummary')}</h3>
                                     <TrendingUp className="w-4 h-4 text-primary" />
@@ -258,6 +368,12 @@ export function SimulationPanel({ isOpen, onClose }: SimulationPanelProps) {
                                                         <p className="text-sm font-black text-emerald-400 tabular-nums">{Math.round(projectedSum).toLocaleString()}</p>
                                                     </div>
                                                 </div>
+                                                {/* Sparkline bar chart */}
+                                                <AnimatedChart
+                                                    option={buildImpactBarOption(originalSum, projectedSum)}
+                                                    style={{ height: 40 }}
+                                                    className="min-h-0"
+                                                />
                                             </div>
                                         );
                                     })}

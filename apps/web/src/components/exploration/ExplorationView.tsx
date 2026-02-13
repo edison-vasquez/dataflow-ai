@@ -65,18 +65,18 @@ const chartTypeIcons: Record<string, React.ElementType> = {
 
 // All supported chart types for the builder
 const allChartTypes = [
-    { id: 'bar', label: 'Bar' },
-    { id: 'line', label: 'Line' },
-    { id: 'area', label: 'Area' },
-    { id: 'pie', label: 'Pie' },
-    { id: 'scatter', label: 'Scatter' },
-    { id: 'radar', label: 'Radar' },
-    { id: 'heatmap', label: 'Heatmap' },
-    { id: 'boxplot', label: 'Boxplot' },
-    { id: 'treemap', label: 'Treemap' },
-    { id: 'funnel', label: 'Funnel' },
-    { id: 'gauge', label: 'Gauge' },
-    { id: 'sunburst', label: 'Sunburst' },
+    { id: 'bar', label: 'Bar', helpKey: 'barHelp' },
+    { id: 'line', label: 'Line', helpKey: 'lineHelp' },
+    { id: 'area', label: 'Area', helpKey: 'lineHelp' },
+    { id: 'pie', label: 'Pie', helpKey: 'pieHelp' },
+    { id: 'scatter', label: 'Scatter', helpKey: 'scatterHelp' },
+    { id: 'radar', label: 'Radar', helpKey: 'radarHelp' },
+    { id: 'heatmap', label: 'Heatmap', helpKey: 'heatmapHelp' },
+    { id: 'boxplot', label: 'Boxplot', helpKey: 'boxplotHelp' },
+    { id: 'treemap', label: 'Treemap', helpKey: 'treemapHelp' },
+    { id: 'funnel', label: 'Funnel', helpKey: 'funnelHelp' },
+    { id: 'gauge', label: 'Gauge', helpKey: 'barHelp' },
+    { id: 'sunburst', label: 'Sunburst', helpKey: 'pieHelp' },
 ];
 
 /**
@@ -593,17 +593,21 @@ export function ExplorationView() {
                                     <div className="grid grid-cols-4 gap-3">
                                         {allChartTypes.map(chartTypeOption => {
                                             const Icon = chartTypeIcons[chartTypeOption.id] || BarChart3;
+                                            const isSelected = builderChartType === chartTypeOption.id;
                                             return (
                                                 <button
                                                     key={chartTypeOption.id}
                                                     onClick={() => setBuilderChartType(chartTypeOption.id)}
                                                     className={cn(
                                                         "p-3 rounded-xl border transition-all flex flex-col items-center gap-2",
-                                                        builderChartType === chartTypeOption.id ? "bg-primary text-white border-primary shadow-xl scale-105" : "bg-gray-100 border-gray-200 text-gray-500 hover:border-gray-300"
+                                                        isSelected ? "bg-primary text-white border-primary shadow-xl scale-105" : "bg-gray-100 border-gray-200 text-gray-500 hover:border-gray-300"
                                                     )}
                                                 >
                                                     <Icon className="w-5 h-5" />
                                                     <span className="text-[8px] font-black uppercase tracking-widest leading-none">{chartTypeOption.label}</span>
+                                                    {isSelected && (
+                                                        <span className="text-[8px] font-medium leading-tight text-center opacity-80">{t(chartTypeOption.helpKey as any)}</span>
+                                                    )}
                                                 </button>
                                             );
                                         })}
@@ -760,6 +764,7 @@ export function ExplorationView() {
                                             <div>
                                                 <h4 className="text-sm font-bold text-gray-900 group-hover/rec:text-primary transition-colors leading-snug">{rec.title}</h4>
                                                 <p className="text-[11px] text-gray-400 mt-1 line-clamp-2 leading-relaxed">{rec.reason}</p>
+                                                <p className="text-[10px] text-gray-300 mt-0.5">{t(`${rec.type}Help` as any)}</p>
                                             </div>
                                             <div className="flex items-center gap-2 pt-1">
                                                 <Plus className="w-3 h-3 text-gray-400 group-hover/rec:text-primary transition-colors" />
@@ -832,7 +837,7 @@ export function ExplorationView() {
                                                             "p-3 rounded-xl transition-all shadow-lg",
                                                             chart.isForecastActive ? "bg-primary text-white" : "bg-gray-100 text-gray-500 hover:bg-primary/10 hover:text-primary"
                                                         )}
-                                                        title={t('magicForecast')}
+                                                        title={t('forecastHelp')}
                                                     >
                                                         <Sparkles className="w-4 h-4 fill-current" />
                                                     </button>

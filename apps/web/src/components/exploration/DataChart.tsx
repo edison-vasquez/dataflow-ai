@@ -158,10 +158,8 @@ export const DataChart = React.memo(function DataChart({ data, layout, type, tit
             lineStyle: { color: 'gradient', curveness: 0.5 }
         }];
     } else if (type === 'scatter') {
-        // Scatter chart needs value axes and [x,y] pairs
-        const xData = Array.isArray(data) && data[0]?.x ? data[0].x : [];
-        const yData = Array.isArray(data) && data[0]?.y ? data[0].y : [];
-        const scatterData = xData.map((x: any, i: number) => [x, yData[i]]);
+        const isMultiSeries = Array.isArray(data) && data.length > 1 && data[0]?.x && data[0]?.name;
+        const scatterColors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
 
         processedOption.xAxis = {
             type: 'value',
@@ -174,12 +172,26 @@ export const DataChart = React.memo(function DataChart({ data, layout, type, tit
             axisLabel: { color: 'rgba(0,0,0,0.5)', fontSize: 10 },
             splitLine: { lineStyle: { color: 'rgba(0,0,0,0.06)' } }
         };
-        processedOption.series = [{
-            type: 'scatter',
-            data: scatterData,
-            symbolSize: 8,
-            itemStyle: { color: 'rgba(59, 130, 246, 0.6)' }
-        }];
+
+        if (isMultiSeries) {
+            processedOption.legend = { bottom: 0, textStyle: { fontSize: 10 } };
+            processedOption.series = data.map((s: any, idx: number) => ({
+                type: 'scatter',
+                name: s.name || `Series ${idx + 1}`,
+                data: (s.x || []).map((x: any, i: number) => [x, (s.y || [])[i]]),
+                symbolSize: s.symbolSize || 8,
+                itemStyle: s.itemStyle || { color: scatterColors[idx % scatterColors.length], opacity: 0.7 }
+            }));
+        } else {
+            const xData = Array.isArray(data) && data[0]?.x ? data[0].x : [];
+            const yData = Array.isArray(data) && data[0]?.y ? data[0].y : [];
+            processedOption.series = [{
+                type: 'scatter',
+                data: xData.map((x: any, i: number) => [x, yData[i]]),
+                symbolSize: 8,
+                itemStyle: { color: 'rgba(59, 130, 246, 0.6)' }
+            }];
+        }
     } else {
         // Generic Bar/Line/Area — supports multi-series XY data (simulations + forecasts)
         const hasXY = Array.isArray(data) && data.length > 0 && data[0]?.x;
