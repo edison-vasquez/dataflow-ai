@@ -93,11 +93,23 @@ export function SimulationPanel({ isOpen, onClose }: SimulationPanelProps) {
     };
 
     const handleAddToExploration = (sim: Simulation) => {
+        const step = Math.max(1, Math.floor(dataset.length / 50));
+        const sampled = dataset.filter((_, i) => i % step === 0).slice(0, 50);
+        const originalData = sampled.map(r => Number(r[sim.targetColumn]) || 0);
+        const projectedData = originalData.map(v => v * sim.adjustment);
+        const xLabels = sampled.map((_, i) => String(i));
+
         const chart = {
             id: crypto.randomUUID(),
             title: `${sim.targetColumn} - ${t('projectionPreview')}`,
             type: 'line',
-            config: buildProjectionChartOption(sim)
+            data: [
+                { name: t('original'), x: xLabels, y: originalData },
+                { name: t('projected'), x: xLabels, y: projectedData, lineStyle: { type: 'dashed' } }
+            ],
+            layout: {},
+            xColumn: sim.driverColumn,
+            yColumn: sim.targetColumn
         };
         addChart(chart);
         persistChart(chart);
